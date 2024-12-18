@@ -36,7 +36,7 @@ variable "ami_id" {
 
 variable "volume_size" {
   description = "Size of the root block device"
-  default     = 10
+  default     = 15
 }
 
 variable "volume_type" {
@@ -44,15 +44,26 @@ variable "volume_type" {
   default     = "gp3"
 }
 
+#variable "additional_volume_size" {
+  #description = "Size of the additional EBS volume"
+  #default     = 20
+#}
+
+#variable "additional_volume_type" {
+ # description = "Type of the additional EBS volume"
+  #default     = "gp3"
+#}
+
 variable "additional_volume_size" {
   description = "Size of the additional EBS volume"
-  default     = 20
+  default     = 25
 }
 
 variable "additional_volume_type" {
   description = "Type of the additional EBS volume"
   default     = "gp3"
 }
+
 
 variable "security_group_name" {
   description = "Name of the security group"
@@ -172,15 +183,35 @@ resource "aws_instance" "myprojectinstance" {
     volume_type = var.volume_type
   }
 
-  ebs_block_device {
-    device_name           = "/dev/xvdf"
-    volume_size           = var.additional_volume_size
-    volume_type           = var.additional_volume_type
-    delete_on_termination = true
-  }
+  #ebs_block_device {
+   # device_name           = "/dev/xvdf"
+   # volume_size           = var.additional_volume_size
+   # volume_type           = var.additional_volume_type
+    #delete_on_termination = true
+  #}
 
+  user_data = file("resize.sh")
 
   tags = {
     Name = "myprojectinstance"
   }
+}
+
+# Standalone EBS Volume
+resource "aws_ebs_volume" "additional_volume" {
+  availability_zone = "ap-south-1a"
+  size              = var.additional_volume_size
+  #volume_type       = var.additional_volume_type
+
+  tags = {
+    Name = "additional-volume"
+  }
+}
+
+# Attach EBS Volume to EC2 Instance
+resource "aws_volume_attachment" "additional_volume_attachment" {
+  device_name = "/dev/xvdf"
+  volume_id   = aws_ebs_volume.additional_volume.id
+  instance_id = aws_instance.myprojectinstance.id
+  force_detach = true
 }
