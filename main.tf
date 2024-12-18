@@ -44,6 +44,16 @@ variable "volume_type" {
   default     = "gp3"
 }
 
+variable "additional_volume_size" {
+  description = "Size of the additional EBS volume"
+  default     = 20
+}
+
+variable "additional_volume_type" {
+  description = "Type of the additional EBS volume"
+  default     = "gp3"
+}
+
 variable "security_group_name" {
   description = "Name of the security group"
   default     = "mysecurity"
@@ -161,6 +171,14 @@ resource "aws_instance" "myprojectinstance" {
     volume_size = var.volume_size
     volume_type = var.volume_type
   }
+
+  ebs_block_device {
+    device_name           = "/dev/xvdf"
+    volume_size           = var.additional_volume_size
+    volume_type           = var.additional_volume_type
+    delete_on_termination = true
+  }
+
 
   tags = {
     Name = "myprojectinstance"
