@@ -9,60 +9,70 @@ terraform {
   required_version = ">= 1.2.0"
 }
 
-provider "aws" {
-  region = "ap-south-1"
+# Declare variables
+variable "aws_region" {
+  description = "The AWS region to deploy resources"
+  default     = "ap-south-1"
 }
 
-#data "aws_availability_zones" "available" {
-# state = "available"
-#}
+variable "vpc_cidr" {
+  description = "The CIDR block for the VPC"
+  default     = "10.0.0.0/16"
+}
 
+variable "subnet_cidr" {
+  description = "The CIDR block for the subnet"
+  default     = "10.0.1.0/24"
+}
+
+variable "instance_type" {
+  description = "Type of EC2 instance"
+  default     = "t2.small"
+}
+
+variable "ami_id" {
+  description = "AMI ID for the instance"
+  default     = "ami-0e53db6fd757e38c7"
+}
+
+variable "volume_size" {
+  description = "Size of the root block device"
+  default     = 10
+}
+
+variable "volume_type" {
+  description = "Type of the root block device volume"
+  default     = "gp3"
+}
+
+variable "security_group_name" {
+  description = "Name of the security group"
+  default     = "mysecurity"
+}
+
+variable "key_name" {
+  description = "The key pair to use for the instance"
+  default     = "MyNewKey"
+}
+
+# Provider configuration
+provider "aws" {
+  region = var.aws_region
+}
+
+# VPC resource
 resource "aws_vpc" "myvpc" {
-  cidr_block = "10.0.0.0/16"
-  #instance_tenancy = "dedicated"
+  cidr_block = var.vpc_cidr
 
   tags = {
     Name = "myvpc"
   }
 }
 
-
-#variable "azs" {
-
-#type        = list(string)
-
-#description = "Availability Zones"
-
-#default     = ["ap-south-1a"]
-
-#} 
-
-#variable "public" {
-
-# type = list(string)
-
-#description = "Public Subnet CIDR values"
-
-#default = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
-
-#}
-
-#variable "azs" {
-
-# type = list(string)
-
-#description = "Availability Zones"
-
-#default = ["ap-south-1a", "ap-south-1b", "ap-south-1c"]
-
-#}
-
+# Subnet resource
 resource "aws_subnet" "mysubnet" {
-  #count      = length(var.public)
-  vpc_id = aws_vpc.myvpc.id
-  #cidr_block = element(var.public, count.index)
-  cidr_block = "10.0.1.0/24"
-  #availability_zone = element(var.azs, count.index)
+  vpc_id                  = aws_vpc.myvpc.id
+  cidr_block              = var.subnet_cidr
   availability_zone       = "ap-south-1a"
   map_public_ip_on_launch = true
 
@@ -71,8 +81,7 @@ resource "aws_subnet" "mysubnet" {
   }
 }
 
-
-
+# Internet Gateway resource
 resource "aws_internet_gateway" "myigw" {
   vpc_id = aws_vpc.myvpc.id
 
@@ -81,15 +90,9 @@ resource "aws_internet_gateway" "myigw" {
   }
 }
 
-
-#resource "aws_eip" "myeip" {
-# depends_on = [aws_internet_gateway.myigw]
-#}
-
-
+# Route Table resource
 resource "aws_route_table" "myroute" {
   vpc_id = aws_vpc.myvpc.id
-  #subnet_id = aws_subnet.mysubnet.id
 
   route {
     cidr_block = "0.0.0.0/0"
@@ -101,181 +104,78 @@ resource "aws_route_table" "myroute" {
   }
 }
 
-
+# Route Table Association resource
 resource "aws_route_table_association" "myrta" {
   subnet_id      = aws_subnet.mysubnet.id
   route_table_id = aws_route_table.myroute.id
 }
 
-
+# Security Group resource
 resource "aws_security_group" "mysecurity" {
-  name        = "mysecurity"
+  name        = var.security_group_name
   description = "Allow TLS inbound traffic and all outbound traffic"
   vpc_id      = aws_vpc.myvpc.id
 
   tags = {
-    Name = "mysecurity"
+    Name = var.security_group_name
   }
 }
 
-
+# Security Group Egress rule
 resource "aws_security_group_rule" "public_out" {
-
-  type = "egress"
-
-  from_port = 0
-
-  to_port = 0
-
-  protocol = "-1"
-
-  cidr_blocks = ["0.0.0.0/0"]
-
-
-
+  type              = "egress"
+  from_port         = 0
+  to_port           = 0
+  protocol          = "-1"
+  cidr_blocks       = ["0.0.0.0/0"]
   security_group_id = aws_security_group.mysecurity.id
-
 }
 
-
+# Security Group Ingress rule for SSH
 resource "aws_security_group_rule" "public_in_ssh" {
-
-  type = "ingress"
-
-  from_port = 22
-
-  to_port = 22
-
-  protocol = "tcp"
-
-  cidr_blocks = ["0.0.0.0/0"]
-
+  type              = "ingress"
+  from_port         = 22
+  to_port           = 22
+  protocol          = "tcp"
+  cidr_blocks       = ["0.0.0.0/0"]
   security_group_id = aws_security_group.mysecurity.id
-
 }
 
-
+# Security Group Ingress rule for HTTP
 resource "aws_security_group_rule" "public_in_http" {
-
-  type = "ingress"
-
-  from_port = 80
-
-  to_port = 80
-
-  protocol = "tcp"
-
-  cidr_blocks = ["0.0.0.0/0"]
-
+  type              = "ingress"
+  from_port         = 80
+  to_port           = 80
+  protocol          = "tcp"
+  cidr_blocks       = ["0.0.0.0/0"]
   security_group_id = aws_security_group.mysecurity.id
-
 }
 
-
+# Security Group Ingress rule for HTTPS
 resource "aws_security_group_rule" "public_in_https" {
-
-  type = "ingress"
-
-  from_port = 443
-
-  to_port = 443
-
-  protocol = "tcp"
-
-  cidr_blocks = ["0.0.0.0/0"]
-
+  type              = "ingress"
+  from_port         = 443
+  to_port           = 443
+  protocol          = "tcp"
+  cidr_blocks       = ["0.0.0.0/0"]
   security_group_id = aws_security_group.mysecurity.id
-
 }
 
+# EC2 Instance resource
 resource "aws_instance" "myprojectinstance" {
-  ami           = "ami-0e53db6fd757e38c7"
-  instance_type = "t2.small"
-  key_name      = "MyNewKey"
-  subnet_id     = aws_subnet.mysubnet.id
-  #subnet_id                   = aws_subnet.myprivatesubnet.id
+  ami                         = var.ami_id
+  instance_type               = var.instance_type
+  key_name                    = var.key_name
+  subnet_id                   = aws_subnet.mysubnet.id
   associate_public_ip_address = true
-  #security_group_id = aws_security_group.mysecurity.id
-  #vpc_id            = aws_vpc.myvpc.id
-  vpc_security_group_ids = [aws_security_group.mysecurity.id]
-  #vpc_security_group_ids = [aws_security_group.myprivatesecurity.id]
-  #security_group_id = aws_security_group.mysecurity.id
+  vpc_security_group_ids      = [aws_security_group.mysecurity.id]
 
   root_block_device {
-    volume_size = 10 # 10 GB storage
-    volume_type = "gp3"
+    volume_size = var.volume_size
+    volume_type = var.volume_type
   }
 
   tags = {
     Name = "myprojectinstance"
   }
 }
-
-#resource "aws_instance" "myprojectprivateinstance" {
-#ami           = "ami-0e53db6fd757e38c7"
-#instance_type = "t2.micro"
-#key_name      = "MyALB"
-#subnet_id     = aws_subnet.myprivatesubnet.id
-#subnet_id                   = aws_subnet.myprivatesubnet.id
-#associate_public_ip_address = false
-#security_group_id = aws_security_group.mysecurity.id
-#vpc_id            = aws_vpc.myvpc.id
-#vpc_security_group_ids = [aws_security_group.myprivatesecurity.id]
-#vpc_security_group_ids = [aws_security_group.myprivatesecurity.id]
-#security_group_id = aws_security_group.mysecurity.id
-#user_data = file("myprivate.sh")
-
-#tags = {
-#Name = "myprojectprivateinstance"
-#}
-#}
-
-
-#resource "aws_instance" "my_testing" {
-#ami = "ami-0e53db6fd757e38c7"
-#instance_type = "t2.micro"
-#key_name = "MyALB"
-#subnet_id     = aws_subnet.myprivatesubnet.id
-#associate_public_ip_address = false
-#vpc_security_group_ids = [aws_security_group.myprivatesecurity.id]
-#user_data = file("testing.sh")
-
-#tags = {
-#Name = "my_testing"
-#}
-#
-
-
-#resource "aws_instance" "myprojectprivateinstance" {
-#ami           = "ami-0e53db6fd757e38c7"
-#instance_type = "t2.micro"
-#key_name      = "MyALB"
-#subnet_id     = aws_subnet.myprivatesubnet.id
-#subnet_id                   = aws_subnet.myprivatesubnet.id
-#associate_public_ip_address = false
-#security_group_id = aws_security_group.mysecurity.id
-#vpc_id            = aws_vpc.myvpc.id
-#vpc_security_group_ids = [aws_security_group.myprivatesecurity.id]
-#vpc_security_group_ids = [aws_security_group.myprivatesecurity.id]
-#security_group_id = aws_security_group.mysecurity.id
-#user_data = file("myprivate.sh")
-
-#tags = {
-#Name = "myprojectprivateinstance"
-#}
-#}
-
-
-#resource "aws_instance" "my_testing" {
-#ami = "ami-0e53db6fd757e38c7"
-#instance_type = "t2.micro"
-#key_name = "MyALB"
-#subnet_id     = aws_subnet.myprivatesubnet.id
-#associate_public_ip_address = false
-#vpc_security_group_ids = [aws_security_group.myprivatesecurity.id]
-#user_data = file("testing.sh")
-
-#tags = {
-#Name = "my_testing"
-#}
-#
