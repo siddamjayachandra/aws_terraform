@@ -9,7 +9,6 @@ terraform {
   required_version = ">= 1.2.0"
 }
 
-# Declare variables
 variable "aws_region" {
   description = "The AWS region to deploy resources"
   default     = "ap-south-1"
@@ -55,12 +54,10 @@ variable "key_name" {
   default     = "MyNewKey"
 }
 
-# Provider configuration
 provider "aws" {
   region = var.aws_region
 }
 
-# VPC resource
 resource "aws_vpc" "myvpc" {
   cidr_block = var.vpc_cidr
 
@@ -69,7 +66,6 @@ resource "aws_vpc" "myvpc" {
   }
 }
 
-# Subnet resource
 resource "aws_subnet" "mysubnet" {
   vpc_id                  = aws_vpc.myvpc.id
   cidr_block              = var.subnet_cidr
@@ -81,7 +77,6 @@ resource "aws_subnet" "mysubnet" {
   }
 }
 
-# Internet Gateway resource
 resource "aws_internet_gateway" "myigw" {
   vpc_id = aws_vpc.myvpc.id
 
@@ -90,7 +85,6 @@ resource "aws_internet_gateway" "myigw" {
   }
 }
 
-# Route Table resource
 resource "aws_route_table" "myroute" {
   vpc_id = aws_vpc.myvpc.id
 
@@ -104,13 +98,11 @@ resource "aws_route_table" "myroute" {
   }
 }
 
-# Route Table Association resource
 resource "aws_route_table_association" "myrta" {
   subnet_id      = aws_subnet.mysubnet.id
   route_table_id = aws_route_table.myroute.id
 }
 
-# Security Group resource
 resource "aws_security_group" "mysecurity" {
   name        = var.security_group_name
   description = "Allow TLS inbound traffic and all outbound traffic"
@@ -121,7 +113,6 @@ resource "aws_security_group" "mysecurity" {
   }
 }
 
-# Security Group Egress rule
 resource "aws_security_group_rule" "public_out" {
   type              = "egress"
   from_port         = 0
@@ -131,7 +122,6 @@ resource "aws_security_group_rule" "public_out" {
   security_group_id = aws_security_group.mysecurity.id
 }
 
-# Security Group Ingress rule for SSH
 resource "aws_security_group_rule" "public_in_ssh" {
   type              = "ingress"
   from_port         = 22
@@ -141,7 +131,6 @@ resource "aws_security_group_rule" "public_in_ssh" {
   security_group_id = aws_security_group.mysecurity.id
 }
 
-# Security Group Ingress rule for HTTP
 resource "aws_security_group_rule" "public_in_http" {
   type              = "ingress"
   from_port         = 80
@@ -151,7 +140,6 @@ resource "aws_security_group_rule" "public_in_http" {
   security_group_id = aws_security_group.mysecurity.id
 }
 
-# Security Group Ingress rule for HTTPS
 resource "aws_security_group_rule" "public_in_https" {
   type              = "ingress"
   from_port         = 443
@@ -161,7 +149,6 @@ resource "aws_security_group_rule" "public_in_https" {
   security_group_id = aws_security_group.mysecurity.id
 }
 
-# EC2 Instance resource
 resource "aws_instance" "myprojectinstance" {
   ami                         = var.ami_id
   instance_type               = var.instance_type
