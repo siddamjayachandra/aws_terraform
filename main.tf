@@ -56,7 +56,7 @@ variable "volume_type" {
 
 variable "additional_volume_size" {
   description = "Size of the additional EBS volume"
-  default     = 25
+  default     = 20
 }
 
 variable "additional_volume_type" {
