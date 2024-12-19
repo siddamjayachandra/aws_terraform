@@ -210,7 +210,7 @@ resource "aws_ebs_volume" "additional_volume" {
 
 # Attach EBS Volume to EC2 Instance
 resource "aws_volume_attachment" "additional_volume_attachment" {
-  device_name = "/dev/xvdf"
+  device_name = "/dev/sdf"
   volume_id   = aws_ebs_volume.additional_volume.id
   instance_id = aws_instance.myprojectinstance.id
   force_detach = true
